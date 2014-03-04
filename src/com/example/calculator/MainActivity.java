@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.app.Activity;
 import android.view.Menu;
 import android.view.View;
+import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -29,6 +30,22 @@ public class MainActivity extends Activity {
 		return true;
 	}
 	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem menuitem) {
+		super.onOptionsItemSelected(menuitem);
+		switch(menuitem.getItemId()) {
+		case R.id.answerMenuItem:
+			helpCalc();
+			break;
+		case R.id.clearMenuItem:
+			helpClear();
+			break;
+		default:
+			return false;
+		}
+		return true;
+	}
+	
 	public void setOperation(View v) {
 		TextView operTextView = (TextView)findViewById(R.id.operTextView);
 		Button but = (Button)v;
@@ -45,6 +62,10 @@ public class MainActivity extends Activity {
 	}
 	
 	public void calculate(View v) {
+		helpCalc();
+	}
+	
+	private void helpCalc() {
 		EditText oper1EditText;
 		EditText oper2EditText;
 		
@@ -73,9 +94,13 @@ public class MainActivity extends Activity {
 			return;
 		}
 		resTextView.setText("" + result);
-	}
+	} 
 	
 	public void clear(View v) {	
+		helpClear();
+	}
+	
+	private void helpClear() {
 		EditText oper1EditText = (EditText)findViewById(R.id.operand1);
 		EditText oper2EditText = (EditText)findViewById(R.id.operand2);
 		TextView operTextView = (TextView)findViewById(R.id.operTextView);

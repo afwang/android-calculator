@@ -5,5 +5,11 @@
         android:orderInCategory="100"
         android:showAsAction="never"
         android:title="@string/action_settings"/>
+    <item
+        android:id="@+id/answerMenuItem"
+        android:title="@string/answer"/>
+    <item
+        android:id="@+id/clearMenuItem"
+        android:title="@string/clear"/>
 
 </menu>
