@@ -2,6 +2,8 @@ package com.example.calculator;
 
 import android.os.Bundle;
 import android.app.Activity;
+import android.content.Intent;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.MenuItem;
@@ -94,6 +96,11 @@ public class MainActivity extends Activity {
 			return;
 		}
 		resTextView.setText("" + result);
+		
+		Intent i = new Intent(this, ResultActivity.class);
+		Log.v("Main activity", "Intent successfully created");
+		i.putExtra("result", result);
+		startActivity(i);
 	} 
 	
 	public void clear(View v) {	

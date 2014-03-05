@@ -12,5 +12,8 @@
     <string name="answer">Answer</string>
     <string name="clear">Clear</string>
     <string name="result">Result</string>
+    
+    <string name="title_activity_result">Result</string>
+    <string name="goback">Go Back</string>
 
 </resources>
