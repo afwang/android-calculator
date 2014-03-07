@@ -2,8 +2,11 @@ package com.example.calculator;
 
 import android.os.Bundle;
 import android.app.Activity;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
 //import android.util.Log;
+import android.support.v4.app.NotificationCompat;
 import android.view.Menu;
 import android.view.View;
 import android.view.MenuItem;
@@ -16,6 +19,7 @@ public class MainActivity extends Activity {
 	enum theOperation {ADD, SUBTRACT, MULT, DIV};
 	
 	private theOperation op;
+	private final int CALC_NOTI_ID = 1;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -101,6 +105,15 @@ public class MainActivity extends Activity {
 		//Toast notification
 		Toast.makeText(getApplicationContext(),
 			"The result is: " + result, Toast.LENGTH_SHORT).show();
+			
+		//Status bar notification
+		NotificationCompat.Builder notiBuilder = new NotificationCompat.Builder(this);
+		notiBuilder.setSmallIcon(R.drawable.ic_launcher);
+		notiBuilder.setContentTitle("Calculator has a result!");
+		notiBuilder.setContentText("The result is: " + result);
+		
+		NotificationManager notiMan = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+		notiMan.notify(CALC_NOTI_ID, notiBuilder.build());
 		
 		Intent i = new Intent(this, ResultActivity.class);
 //		Log.v("Main activity", "Intent successfully created");
