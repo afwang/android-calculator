@@ -3,13 +3,14 @@ package com.example.calculator;
 import android.os.Bundle;
 import android.app.Activity;
 import android.content.Intent;
-import android.util.Log;
+//import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	enum theOperation {ADD, SUBTRACT, MULT, DIV};
@@ -97,8 +98,12 @@ public class MainActivity extends Activity {
 		}
 		resTextView.setText("" + result);
 		
+		//Toast notification
+		Toast.makeText(getApplicationContext(),
+			"The result is: " + result, Toast.LENGTH_SHORT).show();
+		
 		Intent i = new Intent(this, ResultActivity.class);
-		Log.v("Main activity", "Intent successfully created");
+//		Log.v("Main activity", "Intent successfully created");
 		i.putExtra("result", result);
 		startActivity(i);
 	} 

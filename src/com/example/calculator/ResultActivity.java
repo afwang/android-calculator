@@ -3,7 +3,7 @@ package com.example.calculator;
 import android.os.Bundle;
 import android.app.Activity;
 import android.content.Intent;
-import android.util.Log;
+//import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.TextView;
@@ -12,6 +12,7 @@ public class ResultActivity extends Activity {
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+//		Log.v("Result activity", "Able to switch activities");
 		super.onCreate(savedInstanceState);
 		
 		Intent in = getIntent();
@@ -19,10 +20,10 @@ public class ResultActivity extends Activity {
 
 		setContentView(R.layout.activity_result);
 		TextView resText = (TextView)findViewById(R.id.resultActivityTextView);
-		Log.v("Result Activity", "TextView successfully retrieved");
+//		Log.v("Result Activity", "TextView successfully retrieved");
 		resText.setText("Hello. The result is " + result);
-		Log.v("Result Activity", "Setting the text was not at all a problem!");
-		Log.v("Result Activity", "Creation of activity was not a problem");
+//		Log.v("Result Activity", "Setting the text was not at all a problem!");
+//		Log.v("Result Activity", "Creation of activity was not a problem");
 	}
 
 	@Override
