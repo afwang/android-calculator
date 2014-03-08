@@ -16,5 +16,13 @@
     
     <string name="title_activity_result">Result</string>
     <string name="goback">Go Back</string>
+    
+    <!-- Spinner values -->
+    <string-array name="operations">
+        <item>Add</item>
+        <item>Subtract</item>
+        <item>Multiply</item>
+        <item>Divide</item>
+    </string-array>
 
 </resources>

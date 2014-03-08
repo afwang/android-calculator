@@ -20,11 +20,10 @@
         <requestFocus />
     </EditText>
 
-    <TextView
-        android:id="@+id/operTextView"
+    <Spinner
+        android:id="@+id/operation_spinner"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/operation" />
+        android:layout_height="wrap_content" />
 
     <EditText
         android:id="@+id/operand2"
@@ -32,40 +31,6 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:inputType="numberSigned|numberDecimal" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" >
-
-        <Button
-            android:id="@+id/button1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/add"
-            android:onClick="setOperation" />
-
-        <Button
-            android:id="@+id/button2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/subtract"
-            android:onClick="setOperation" />
-
-        <Button
-            android:id="@+id/button3"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/multiply"
-            android:onClick="setOperation" />
-
-        <Button
-            android:id="@+id/button4"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/divide"
-            android:onClick="setOperation" />
-
-    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
