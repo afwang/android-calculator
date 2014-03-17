@@ -1,10 +1,17 @@
 package com.example.calculator;
 
+import java.util.ArrayList;
+
+import com.example.calculator.CalculatorHistoryContract.CalculatorHistory;
+
 import android.os.Bundle;
 import android.app.Activity;
 import android.app.NotificationManager;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 //import android.util.Log;
 import android.support.v4.app.NotificationCompat;
 import android.view.Menu;
@@ -14,6 +21,7 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -23,6 +31,9 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 	
 	private theOperation op;
 	private final int CALC_NOTI_ID = 1;
+	private CalculatorHistoryHelper dbHelper;
+	private ArrayList<String> history;
+	private ArrayAdapter<String> historyListAdapter;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +52,39 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		aa.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		operSpinner.setOnItemSelectedListener(this);
 		operSpinner.setAdapter(aa);
+		
+		dbHelper = new CalculatorHistoryHelper(this);
+		SQLiteDatabase db = dbHelper.getReadableDatabase();
+		String[] columns = {
+			CalculatorHistory.COLUMN_NAME_OPER1,
+			CalculatorHistory.COLUMN_NAME_OPERATION,
+			CalculatorHistory.COLUMN_NAME_OPER2,
+			CalculatorHistory.COLUMN_NAME_RESULT };
+		Cursor c = db.query(CalculatorHistory.TABLE_NAME, columns, null, null, null, null, null);
+		db.close();
+		history = new ArrayList<String>();
+		StringBuilder sb = new StringBuilder();
+		
+		int column;
+		while(c.moveToNext()) {
+			column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_OPER1);
+			sb.append(c.getDouble(column));
+			column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_OPERATION);
+			sb.append(c.getString(column));
+			column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_OPER2);
+			sb.append(c.getDouble(column));
+			column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_RESULT);
+			sb.append('=');
+			sb.append(c.getDouble(column));
+			history.add(sb.toString());
+			//clean the StringBuilder
+			sb.delete(0, sb.length());
+		}
+		
+		historyListAdapter = new ArrayAdapter<String>(this,
+			android.R.layout.simple_list_item_1, history);
+		ListView historyList = (ListView)findViewById(R.id.listView1);
+		historyList.setAdapter(historyListAdapter);
 	}
 
 	@Override
@@ -66,21 +110,6 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		return true;
 	}
 	
-//	public void setOperation(View v) {
-//		TextView operTextView = (TextView)findViewById(R.id.operTextView);
-//		Button but = (Button)v;
-//		char operation = but.getText().toString().charAt(0);
-//		
-//		operTextView.setText("" + operation);
-//		switch(operation)
-//		{
-//		case '+': op = theOperation.ADD; break;
-//		case '-': op = theOperation.SUBTRACT; break;
-//		case '*': op = theOperation.MULT; break;
-//		case '/': op = theOperation.DIV; break;
-//		}
-//	}
-	
 	public void calculate(View v) {
 		helpCalc();
 	}
@@ -98,16 +127,19 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		TextView resTextView = (TextView)findViewById(R.id.resultTextView);
 		
 		double result = 0;
+		double op1;
+		double op2;
+		char operation = '+';
 		
 		try {
 //			Log.v("helpCalc", "The operation is " + op);
-			double op1 = Double.parseDouble(oper1);
-			double op2 = Double.parseDouble(oper2);
+			op1 = Double.parseDouble(oper1);
+			op2 = Double.parseDouble(oper2);
 			switch(op) {
-			case ADD: result = op1 + op2; break;
-			case SUBTRACT: result = op1 - op2; break;
-			case MULT: result = op1 * op2; break;
-			case DIV: result = (op2 != 0) ? op1 / op2 : 0; break;
+			case ADD: result = op1 + op2; operation = '+'; break;
+			case SUBTRACT: result = op1 - op2; operation = '-'; break;
+			case MULT: result = op1 * op2; operation = '*'; break;
+			case DIV: result = (op2 != 0) ? op1 / op2 : 0; operation = '/'; break;
 			}
 		}
 		catch (NumberFormatException e) {
@@ -128,6 +160,17 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		
 		NotificationManager notiMan = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
 		notiMan.notify(CALC_NOTI_ID, notiBuilder.build());
+		
+		SQLiteDatabase db = dbHelper.getWritableDatabase();
+		ContentValues values = new ContentValues();
+		values.put(CalculatorHistory.COLUMN_NAME_OPER1, Double.toString(op1));
+		values.put(CalculatorHistory.COLUMN_NAME_OPERATION, Character.toString(operation));
+		values.put(CalculatorHistory.COLUMN_NAME_OPER2, Double.toString(op2));
+		values.put(CalculatorHistory.COLUMN_NAME_RESULT, Double.toString(result));
+		db.insert(CalculatorHistory.TABLE_NAME, null, values);
+		db.close();
+		history.add("" + op1 + operation + op2 + '=' + result);
+		historyListAdapter.notifyDataSetChanged();
 		
 		Intent i = new Intent(this, ResultActivity.class);
 //		Log.v("Main activity", "Intent successfully created");

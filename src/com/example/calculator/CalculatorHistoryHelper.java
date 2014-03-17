@@ -1,0 +1,38 @@
+package com.example.calculator;
+
+import com.example.calculator.CalculatorHistoryContract.CalculatorHistory;
+
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+public class CalculatorHistoryHelper extends SQLiteOpenHelper {
+	public static final int DATABASE_VERSION = 1;
+	public static final String DATABASE_NAME = "Calculator.db";
+	private static final String CREATE_TABLE =
+		"CREATE TABLE " + CalculatorHistory.TABLE_NAME + " ("
+		+ CalculatorHistory._ID + " INTEGER PRIMARY KEY,"
+		+ CalculatorHistory.COLUMN_NAME_OPER1 + " REAL,"
+		+ CalculatorHistory.COLUMN_NAME_OPERATION + " TEXT,"
+		+ CalculatorHistory.COLUMN_NAME_OPER2 + " REAL,"
+		+ CalculatorHistory.COLUMN_NAME_RESULT + " REAL)";
+	private static final String DEL_TABLE =
+		"DROP TABLE IF EXISTS " + CalculatorHistory.TABLE_NAME;
+	
+	public CalculatorHistoryHelper(Context context) {
+		super(context, DATABASE_NAME, null, DATABASE_VERSION);
+	}
+
+	@Override
+	public void onCreate(SQLiteDatabase db) {
+		// TODO Auto-generated method stub
+		db.execSQL(CREATE_TABLE);
+	}
+
+	@Override
+	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+		// TODO Auto-generated method stub
+		db.execSQL(DEL_TABLE);
+		onCreate(db);
+	}
+}
