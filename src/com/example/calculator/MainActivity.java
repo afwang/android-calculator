@@ -1,9 +1,12 @@
 package com.example.calculator;
 
 import java.util.ArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.example.calculator.CalculatorHistoryContract.CalculatorHistory;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Activity;
 import android.app.NotificationManager;
@@ -14,6 +17,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 //import android.util.Log;
 import android.support.v4.app.NotificationCompat;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.MenuItem;
@@ -31,9 +35,74 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 	
 	private theOperation op;
 	private final int CALC_NOTI_ID = 1;
+	
 	private CalculatorHistoryHelper dbHelper;
+	private Lock databaseLock;
+	
 	private ArrayList<String> history;
 	private ArrayAdapter<String> historyListAdapter;
+	
+	private class LoadHistoryTask extends AsyncTask<CalculatorHistoryHelper, Object, ArrayList<String>> {
+
+		@Override
+		protected ArrayList<String> doInBackground(CalculatorHistoryHelper... dbHelper) {
+			String[] columns = {
+					CalculatorHistory.COLUMN_NAME_OPER1,
+					CalculatorHistory.COLUMN_NAME_OPERATION,
+					CalculatorHistory.COLUMN_NAME_OPER2,
+					CalculatorHistory.COLUMN_NAME_RESULT };
+			Cursor c;
+			StringBuilder sb = new StringBuilder();
+			ArrayList<String> loadedHistory = new ArrayList<String>();
+			int column;
+			
+			Log.v("AsyncTask", "Inside doInBackground()");
+			
+			try {
+				databaseLock.lockInterruptibly();
+				SQLiteDatabase db = dbHelper[0].getReadableDatabase();
+				c = db.query(CalculatorHistory.TABLE_NAME, columns, null, null, null, null, null);
+				db.close();
+
+				while(c.moveToNext()) {
+					column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_OPER1);
+					sb.append(c.getDouble(column));
+					column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_OPERATION);
+					sb.append(c.getString(column));
+					column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_OPER2);
+					sb.append(c.getDouble(column));
+					column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_RESULT);
+					sb.append('=');
+					sb.append(c.getDouble(column));
+					loadedHistory.add(0, sb.toString());
+					//clean the StringBuilder
+					sb.delete(0, sb.length());
+					Log.v("AsyncTask", "One iteration of the background loop finished");
+				}
+				databaseLock.unlock();
+			}
+			catch (InterruptedException e) {
+				databaseLock.unlock();
+				return null;
+			}
+			catch (Exception e) {
+				databaseLock.unlock();
+				return null;
+			}
+			Log.v("AsyncTask", "Finished with most of doInBackground()");
+			return loadedHistory;
+		}
+		
+		@Override
+		protected void onPostExecute(ArrayList<String> loadedHistory) {
+			if(loadedHistory == null)
+				return;
+			
+			Log.v("AsyncTask", "Inside onPostExecute");
+			history.addAll(loadedHistory);
+			historyListAdapter.notifyDataSetChanged();
+		}
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -54,37 +123,15 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		operSpinner.setAdapter(aa);
 		
 		dbHelper = new CalculatorHistoryHelper(this);
-		SQLiteDatabase db = dbHelper.getReadableDatabase();
-		String[] columns = {
-			CalculatorHistory.COLUMN_NAME_OPER1,
-			CalculatorHistory.COLUMN_NAME_OPERATION,
-			CalculatorHistory.COLUMN_NAME_OPER2,
-			CalculatorHistory.COLUMN_NAME_RESULT };
-		Cursor c = db.query(CalculatorHistory.TABLE_NAME, columns, null, null, null, null, null);
-		db.close();
+		databaseLock = new ReentrantLock();
 		history = new ArrayList<String>();
-		StringBuilder sb = new StringBuilder();
-		
-		int column;
-		while(c.moveToNext()) {
-			column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_OPER1);
-			sb.append(c.getDouble(column));
-			column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_OPERATION);
-			sb.append(c.getString(column));
-			column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_OPER2);
-			sb.append(c.getDouble(column));
-			column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_RESULT);
-			sb.append('=');
-			sb.append(c.getDouble(column));
-			history.add(sb.toString());
-			//clean the StringBuilder
-			sb.delete(0, sb.length());
-		}
-		
 		historyListAdapter = new ArrayAdapter<String>(this,
-			android.R.layout.simple_list_item_1, history);
-		ListView historyList = (ListView)findViewById(R.id.listView1);
-		historyList.setAdapter(historyListAdapter);
+				android.R.layout.simple_list_item_1, history);
+		ListView lv = (ListView)findViewById(R.id.listView1);
+		lv.setAdapter(historyListAdapter);
+		
+		//Start background task
+		new LoadHistoryTask().execute(dbHelper);
 	}
 
 	@Override
@@ -161,15 +208,26 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		NotificationManager notiMan = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
 		notiMan.notify(CALC_NOTI_ID, notiBuilder.build());
 		
-		SQLiteDatabase db = dbHelper.getWritableDatabase();
-		ContentValues values = new ContentValues();
-		values.put(CalculatorHistory.COLUMN_NAME_OPER1, Double.toString(op1));
-		values.put(CalculatorHistory.COLUMN_NAME_OPERATION, Character.toString(operation));
-		values.put(CalculatorHistory.COLUMN_NAME_OPER2, Double.toString(op2));
-		values.put(CalculatorHistory.COLUMN_NAME_RESULT, Double.toString(result));
-		db.insert(CalculatorHistory.TABLE_NAME, null, values);
-		db.close();
-		history.add("" + op1 + operation + op2 + '=' + result);
+		try {
+			databaseLock.lockInterruptibly();
+			SQLiteDatabase db = dbHelper.getWritableDatabase();
+			ContentValues values = new ContentValues();
+			values.put(CalculatorHistory.COLUMN_NAME_OPER1, Double.toString(op1));
+			values.put(CalculatorHistory.COLUMN_NAME_OPERATION, Character.toString(operation));
+			values.put(CalculatorHistory.COLUMN_NAME_OPER2, Double.toString(op2));
+			values.put(CalculatorHistory.COLUMN_NAME_RESULT, Double.toString(result));
+			db.insert(CalculatorHistory.TABLE_NAME, null, values);
+			db.close();
+			history.add(0, "" + op1 + operation + op2 + '=' + result);
+			databaseLock.unlock();
+		}
+		catch(InterruptedException e) {
+			databaseLock.unlock();
+		}
+		catch(Exception e) {
+			databaseLock.unlock();
+		}
+		
 		historyListAdapter.notifyDataSetChanged();
 		
 		Intent i = new Intent(this, ResultActivity.class);
