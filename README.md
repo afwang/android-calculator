@@ -5,4 +5,9 @@ This app acts as a learning and testing ground as I learn more about Android app
 
 To-do list
 ==========
--Send the database lookup code in MainActivity's onCreate() to a background thread.
+- Add in a clear history button
+- Replace SaveHistoryTask with a Service or IntentService. Look into Parcel to send data
+
+Completed tasks
+===============
+- Send the database lookup code in MainActivity's onCreate() to a background thread.
