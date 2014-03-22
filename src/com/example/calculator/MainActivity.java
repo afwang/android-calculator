@@ -1,6 +1,7 @@
 package com.example.calculator;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -41,6 +42,21 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 	
 	private ArrayList<String> history;
 	private ArrayAdapter<String> historyListAdapter;
+	private LinkedList<CalcOperation> newoperations;
+	
+	private class CalcOperation {
+		public double operand1;
+		public double operand2;
+		public char operation;
+		public double result;
+		
+		public CalcOperation(double op1, double op2, char op, double result) {
+			operand1 = op1;
+			operand2 = op2;
+			operation = op;
+			this.result = result;
+		}
+	}
 	
 	private class LoadHistoryTask extends AsyncTask<CalculatorHistoryHelper, Object, ArrayList<String>> {
 
@@ -56,15 +72,11 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 			ArrayList<String> loadedHistory = new ArrayList<String>();
 			int column;
 			
-			Log.v("AsyncTask", "Inside doInBackground()");
-			
 			try {
 				databaseLock.lockInterruptibly();
 				SQLiteDatabase db = dbHelper[0].getReadableDatabase();
 				c = db.query(CalculatorHistory.TABLE_NAME, columns, null, null, null, null, null);
-				db.close();
-
-				while(c.moveToNext()) {
+				while(c.moveToNext() && !isCancelled()) {
 					column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_OPER1);
 					sb.append(c.getDouble(column));
 					column = c.getColumnIndex(CalculatorHistory.COLUMN_NAME_OPERATION);
@@ -77,19 +89,23 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 					loadedHistory.add(0, sb.toString());
 					//clean the StringBuilder
 					sb.delete(0, sb.length());
-					Log.v("AsyncTask", "One iteration of the background loop finished");
 				}
+				db.close();
 				databaseLock.unlock();
 			}
 			catch (InterruptedException e) {
 				databaseLock.unlock();
+//				Log.v("AsyncTask", "Caught an InterruptedException: " + e.getMessage());
 				return null;
 			}
 			catch (Exception e) {
 				databaseLock.unlock();
+//				Log.v("AsyncTask", "Caught an Exception: " + e.getMessage());
 				return null;
 			}
-			Log.v("AsyncTask", "Finished with most of doInBackground()");
+			
+			if(isCancelled())
+				return null;
 			return loadedHistory;
 		}
 		
@@ -97,13 +113,50 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		protected void onPostExecute(ArrayList<String> loadedHistory) {
 			if(loadedHistory == null)
 				return;
-			
-			Log.v("AsyncTask", "Inside onPostExecute");
-			history.addAll(loadedHistory);
+				
+			history.addAll(0, loadedHistory);
 			historyListAdapter.notifyDataSetChanged();
 		}
 	}
 
+	private class SaveHistoryTask extends AsyncTask<CalculatorHistoryHelper, Object, Object> {
+
+		@Override
+		protected Object doInBackground(CalculatorHistoryHelper... params) {
+			// TODO Auto-generated method stub
+			try {
+				databaseLock.lockInterruptibly();
+				SQLiteDatabase db = params[0].getWritableDatabase();
+				ContentValues values = new ContentValues();
+				CalcOperation co;
+				
+				synchronized(newoperations) {
+					co = newoperations.poll();
+				}
+				while(co != null) {
+					values.put(CalculatorHistory.COLUMN_NAME_OPER1, Double.valueOf(co.operand1));
+					values.put(CalculatorHistory.COLUMN_NAME_OPERATION, Character.toString(co.operation));
+					values.put(CalculatorHistory.COLUMN_NAME_OPER2, Double.valueOf(co.operand2));
+					values.put(CalculatorHistory.COLUMN_NAME_RESULT, Double.valueOf(co.result));
+					db.insert(CalculatorHistory.TABLE_NAME, null, values);
+					synchronized(newoperations) {
+						co = newoperations.poll();
+					}
+				}
+				
+				db.close();
+				databaseLock.unlock();
+			}
+			catch(InterruptedException e) {
+				databaseLock.unlock();
+			}
+			catch(Exception e) {
+				databaseLock.unlock();
+			}
+			return null;
+		}
+	}
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -114,6 +167,7 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		
 		Spinner operSpinner =
 			(Spinner)findViewById(R.id.operation_spinner);
+		ListView lv = (ListView)findViewById(R.id.listView1);
 		
 		ArrayAdapter<CharSequence> aa =
 			ArrayAdapter.createFromResource(this,
@@ -127,13 +181,20 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		history = new ArrayList<String>();
 		historyListAdapter = new ArrayAdapter<String>(this,
 				android.R.layout.simple_list_item_1, history);
-		ListView lv = (ListView)findViewById(R.id.listView1);
+		newoperations = new LinkedList<CalcOperation>();
+		
 		lv.setAdapter(historyListAdapter);
 		
 		//Start background task
 		new LoadHistoryTask().execute(dbHelper);
 	}
 
+	@Override
+	protected void onPause() {
+		super.onPause();
+		new SaveHistoryTask().execute(dbHelper);
+	}
+	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -208,25 +269,8 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		NotificationManager notiMan = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
 		notiMan.notify(CALC_NOTI_ID, notiBuilder.build());
 		
-		try {
-			databaseLock.lockInterruptibly();
-			SQLiteDatabase db = dbHelper.getWritableDatabase();
-			ContentValues values = new ContentValues();
-			values.put(CalculatorHistory.COLUMN_NAME_OPER1, Double.toString(op1));
-			values.put(CalculatorHistory.COLUMN_NAME_OPERATION, Character.toString(operation));
-			values.put(CalculatorHistory.COLUMN_NAME_OPER2, Double.toString(op2));
-			values.put(CalculatorHistory.COLUMN_NAME_RESULT, Double.toString(result));
-			db.insert(CalculatorHistory.TABLE_NAME, null, values);
-			db.close();
-			history.add(0, "" + op1 + operation + op2 + '=' + result);
-			databaseLock.unlock();
-		}
-		catch(InterruptedException e) {
-			databaseLock.unlock();
-		}
-		catch(Exception e) {
-			databaseLock.unlock();
-		}
+		newoperations.add(new CalcOperation(op1, op2, operation, result));
+		history.add(0, "" + op1 + operation + op2 + '=' + result);
 		
 		historyListAdapter.notifyDataSetChanged();
 		
