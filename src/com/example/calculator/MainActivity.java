@@ -16,7 +16,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-//import android.util.Log;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.view.Menu;
@@ -44,21 +43,9 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 	private ArrayAdapter<String> historyListAdapter;
 	private LinkedList<CalcOperation> newoperations;
 	
-	private class CalcOperation {
-		public double operand1;
-		public double operand2;
-		public char operation;
-		public double result;
-		
-		public CalcOperation(double op1, double op2, char op, double result) {
-			operand1 = op1;
-			operand2 = op2;
-			operation = op;
-			this.result = result;
-		}
-	}
+	private AsyncTask<CalculatorHistoryHelper, Void, ArrayList<String>> loadHistory;
 	
-	private class LoadHistoryTask extends AsyncTask<CalculatorHistoryHelper, Object, ArrayList<String>> {
+	private class LoadHistoryTask extends AsyncTask<CalculatorHistoryHelper, Void, ArrayList<String>> {
 
 		@Override
 		protected ArrayList<String> doInBackground(CalculatorHistoryHelper... dbHelper) {
@@ -113,47 +100,11 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		protected void onPostExecute(ArrayList<String> loadedHistory) {
 			if(loadedHistory == null)
 				return;
-				
+			
+			//No locking needed to access ArrayList history.
+			//onPostExecute runs on the UI thread.
 			history.addAll(0, loadedHistory);
 			historyListAdapter.notifyDataSetChanged();
-		}
-	}
-
-	private class SaveHistoryTask extends AsyncTask<CalculatorHistoryHelper, Object, Object> {
-
-		@Override
-		protected Object doInBackground(CalculatorHistoryHelper... params) {
-			// TODO Auto-generated method stub
-			try {
-				databaseLock.lockInterruptibly();
-				SQLiteDatabase db = params[0].getWritableDatabase();
-				ContentValues values = new ContentValues();
-				CalcOperation co;
-				
-				synchronized(newoperations) {
-					co = newoperations.poll();
-				}
-				while(co != null) {
-					values.put(CalculatorHistory.COLUMN_NAME_OPER1, Double.valueOf(co.operand1));
-					values.put(CalculatorHistory.COLUMN_NAME_OPERATION, Character.toString(co.operation));
-					values.put(CalculatorHistory.COLUMN_NAME_OPER2, Double.valueOf(co.operand2));
-					values.put(CalculatorHistory.COLUMN_NAME_RESULT, Double.valueOf(co.result));
-					db.insert(CalculatorHistory.TABLE_NAME, null, values);
-					synchronized(newoperations) {
-						co = newoperations.poll();
-					}
-				}
-				
-				db.close();
-				databaseLock.unlock();
-			}
-			catch(InterruptedException e) {
-				databaseLock.unlock();
-			}
-			catch(Exception e) {
-				databaseLock.unlock();
-			}
-			return null;
 		}
 	}
 	
@@ -186,13 +137,28 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		lv.setAdapter(historyListAdapter);
 		
 		//Start background task
-		new LoadHistoryTask().execute(dbHelper);
+		loadHistory = new LoadHistoryTask();
+		loadHistory.execute(dbHelper);
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
-		new SaveHistoryTask().execute(dbHelper);
+		loadHistory.cancel(true);
+		
+		CalcOperation[] myData = new CalcOperation[1];
+		CalcOperation[] otherArray = newoperations.toArray(myData);
+		if(myData[myData.length-1] == null)
+			myData = otherArray;
+		//Only need to start intent if we have data to store:
+		if(myData[0] != null)
+		{
+			Intent saveHistory = new Intent(this, com.example.calculator.SaveHistoryService.class);
+			saveHistory.putExtra(getResources().getString(R.string.ADD_TO_DB_KEY), myData);
+			startService(saveHistory);	
+			//Clear LinkedList
+			newoperations = new LinkedList<CalcOperation>();
+		}
 	}
 	
 	@Override

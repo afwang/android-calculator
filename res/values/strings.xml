@@ -17,6 +17,10 @@
     <string name="title_activity_result">Result</string>
     <string name="goback">Go Back</string>
     
+    <string name="toast_lost_data">Lost data: </string>
+    
+    <string name="ADD_TO_DB_KEY">com.example.calculator.ADD_TO_DB</string>
+    
     <!-- Spinner values -->
     <string-array name="operations">
         <item>Add</item>

@@ -52,6 +52,7 @@ public final class R {
         public static final int result=0x7f080001;
     }
     public static final class string {
+        public static final int ADD_TO_DB_KEY=0x7f05000f;
         public static final int action_settings=0x7f050001;
         public static final int add=0x7f050004;
         public static final int answer=0x7f050008;
@@ -66,6 +67,7 @@ public final class R {
         public static final int subtract=0x7f050005;
         public static final int title_activity_result=0x7f05000c;
         public static final int toast=0x7f05000b;
+        public static final int toast_lost_data=0x7f05000e;
     }
     public static final class style {
         /** 
