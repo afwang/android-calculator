@@ -33,6 +33,7 @@ public class SaveHistoryService extends IntentService {
 		CalculatorHistoryHelper dbHelper = new CalculatorHistoryHelper(this);
 		
 		try {
+			CalculatorHistoryHelper.dbLock.lockInterruptibly();
 			SQLiteDatabase db = dbHelper.getWritableDatabase();
 			ContentValues values = new ContentValues();
 			CalcOperation co;
@@ -46,17 +47,21 @@ public class SaveHistoryService extends IntentService {
 				db.insert(CalculatorHistory.TABLE_NAME, null, values);
 			}
 			db.close();
+			CalculatorHistoryHelper.dbLock.unlock();
 		}
 		catch(ClassCastException e) {
 			Toast.makeText(this,
 				r.getString(R.string.toast_lost_data) + e.getMessage(), Toast.LENGTH_SHORT
 			).show();
+			CalculatorHistoryHelper.dbLock.unlock();
 		}
 		catch(SQLiteException e) {
 			//Unable to open database. Discard data.
+			CalculatorHistoryHelper.dbLock.unlock();
 		}
 		catch(Exception e) {
 			//Something unexpected occur. Just discard remaining data
+			CalculatorHistoryHelper.dbLock.unlock();
 		}
 	}
 }

@@ -37,7 +37,6 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 	private final int CALC_NOTI_ID = 1;
 	
 	private CalculatorHistoryHelper dbHelper;
-	private Lock databaseLock;
 	
 	private ArrayList<String> history;
 	private ArrayAdapter<String> historyListAdapter;
@@ -60,7 +59,7 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 			int column;
 			
 			try {
-				databaseLock.lockInterruptibly();
+				CalculatorHistoryHelper.dbLock.lockInterruptibly();
 				SQLiteDatabase db = dbHelper[0].getReadableDatabase();
 				c = db.query(CalculatorHistory.TABLE_NAME, columns, null, null, null, null, null);
 				while(c.moveToNext() && !isCancelled()) {
@@ -78,15 +77,15 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 					sb.delete(0, sb.length());
 				}
 				db.close();
-				databaseLock.unlock();
+				CalculatorHistoryHelper.dbLock.unlock();
 			}
 			catch (InterruptedException e) {
-				databaseLock.unlock();
+				CalculatorHistoryHelper.dbLock.unlock();
 //				Log.v("AsyncTask", "Caught an InterruptedException: " + e.getMessage());
 				return null;
 			}
 			catch (Exception e) {
-				databaseLock.unlock();
+				CalculatorHistoryHelper.dbLock.unlock();
 //				Log.v("AsyncTask", "Caught an Exception: " + e.getMessage());
 				return null;
 			}
@@ -128,7 +127,6 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		operSpinner.setAdapter(aa);
 		
 		dbHelper = new CalculatorHistoryHelper(this);
-		databaseLock = new ReentrantLock();
 		history = new ArrayList<String>();
 		historyListAdapter = new ArrayAdapter<String>(this,
 				android.R.layout.simple_list_item_1, history);
