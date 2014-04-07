@@ -30,7 +30,7 @@ public class HistoryService extends IntentService {
 	protected void onHandleIntent(Intent intent) {
 		Resources r = getResources();
 		Bundle bun = intent.getExtras();
-		int operation = bun.getInt(r.getString(R.string.clear_history));
+		int operation = bun.getInt(r.getString(R.string.DB_OPERATION));
 		
 		switch(operation) {
 		case CalculatorHistoryHelper.SAVE_TO_DB:
@@ -39,16 +39,19 @@ public class HistoryService extends IntentService {
 		case CalculatorHistoryHelper.CLEAR_ALL:
 			clearAll();
 			break;
-		//default case is do nothing.
+		default:
+			Log.v("HistoryService.onHandleIntent()",
+				"An illegal value was passed with Bundle!");
 		}
 	}
 	
 	private void saveData(Parcelable[] data) {
 		CalculatorHistoryHelper dbHelper = new CalculatorHistoryHelper(this);
+		SQLiteDatabase db = null;
 		
 		try {
 			CalculatorHistoryHelper.dbLock.lockInterruptibly();
-			SQLiteDatabase db = dbHelper.getWritableDatabase();
+			db = dbHelper.getWritableDatabase();
 			ContentValues values = new ContentValues();
 			CalcOperation co;
 			
@@ -63,16 +66,30 @@ public class HistoryService extends IntentService {
 			db.close();
 			CalculatorHistoryHelper.dbLock.unlock();
 		}
+		catch(InterruptedException e) {
+			//Do not unlock the Lock, because we never acquired the lock
+			//if an InterruptedException occurs
+		}
 		catch(ClassCastException e) {
+			//Throw away remaining data. Something weird happened.
+			if(db != null)
+				db.close();
+			CalculatorHistoryHelper.dbLock.unlock();
 		}
 		catch(SQLiteException e) {
 			//Unable to open database. Discard data.
+			CalculatorHistoryHelper.dbLock.unlock();
 		}
 		catch(Exception e) {
 			//Something unexpected occur. Just discard remaining data
-		}
-		finally {
-			CalculatorHistoryHelper.dbLock.unlock();
+			//Try unlocking the lock:
+			try {
+				CalculatorHistoryHelper.dbLock.unlock();
+			}
+			catch(IllegalMonitorStateException nolock) {
+				//We never had the lock in the first place! No worries about
+				//anything then.
+			}
 		}
 	}
 	
