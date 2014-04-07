@@ -44,4 +44,21 @@ public class CalculatorHistoryHelper extends SQLiteOpenHelper {
 		db.execSQL(DEL_TABLE);
 		onCreate(db);
 	}
+	
+	public void clearTable() {
+		SQLiteDatabase db = null;
+		try {
+			dbLock.lockInterruptibly();
+			db = getWritableDatabase();
+			db.execSQL(DEL_TABLE);
+			onCreate(db);
+		}
+		catch(Exception e) {
+		}
+		finally {
+			if(db != null)
+				db.close();
+			dbLock.unlock();
+		}
+	}
 }

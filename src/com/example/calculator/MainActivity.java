@@ -282,5 +282,11 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 	
 	public void clearHistory(View v) {
 		Log.v("clearHistory", "Starting Intent for clearing history");
+		Intent clearHistory = new Intent(this, com.example.calculator.HistoryService.class);
+		clearHistory.putExtra(getResources().getString(R.string.DB_OPERATION),
+			CalculatorHistoryHelper.CLEAR_ALL);
+		history.clear();
+		historyListAdapter.notifyDataSetChanged();
+		startService(clearHistory);
 	}
 }
