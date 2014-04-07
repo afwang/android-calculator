@@ -151,9 +151,11 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 		//Only need to start intent if we have data to store:
 		if(myData[0] != null)
 		{
-			Intent saveHistory = new Intent(this, com.example.calculator.SaveHistoryService.class);
+			Intent saveHistory = new Intent(this, com.example.calculator.HistoryService.class);
 			saveHistory.putExtra(getResources().getString(R.string.ADD_TO_DB_KEY), myData);
-			startService(saveHistory);	
+			saveHistory.putExtra(getResources().getString(R.string.DB_OPERATION),
+				CalculatorHistoryHelper.SAVE_TO_DB);
+			startService(saveHistory);
 			//Clear LinkedList
 			newoperations = new LinkedList<CalcOperation>();
 		}
@@ -276,5 +278,9 @@ public class MainActivity extends Activity implements OnItemSelectedListener {
 	@Override
 	public void onNothingSelected(AdapterView<?> arg0) {
 //		Log.v("onNothingSelected", "onNothingSelected - should not be called");
+	}
+	
+	public void clearHistory(View v) {
+		Log.v("clearHistory", "Starting Intent for clearing history");
 	}
 }

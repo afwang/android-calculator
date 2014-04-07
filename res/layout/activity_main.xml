@@ -50,6 +50,13 @@
             android:onClick="clear"
             android:text="@string/clear" />
 
+        <Button
+            android:id="@+id/button1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="clearHistory"
+            android:text="@string/clear_history" />
+
     </LinearLayout>
 
     <TextView

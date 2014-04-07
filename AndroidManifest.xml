@@ -28,7 +28,7 @@
         </activity>
         
         <service
-            android:name=".SaveHistoryService"
+            android:name=".HistoryService"
             android:exported="false" />
     </application>
 

@@ -12,6 +12,10 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class CalculatorHistoryHelper extends SQLiteOpenHelper {
 	public static final Lock dbLock = new ReentrantLock(); 
 	
+	//Constants are used to determine what sort of operation is performed
+	public static final int SAVE_TO_DB = 1;
+	public static final int CLEAR_ALL = 2;
+	
 	public static final int DATABASE_VERSION = 1;
 	public static final String DATABASE_NAME = "Calculator.db";
 	private static final String CREATE_TABLE =
